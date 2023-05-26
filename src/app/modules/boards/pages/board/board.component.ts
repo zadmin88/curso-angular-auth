@@ -12,6 +12,8 @@ import { Card } from '@models/card.model';
 import { BoardsService } from '@services/boards.service';
 import { Board } from '@models/board.model';
 import { CardsService } from '@services/card.service';
+import { List } from '@models/list.model';
+import { FormControl, Validators } from '@angular/forms';
 
 @Component({
   selector: 'app-board',
@@ -29,6 +31,10 @@ import { CardsService } from '@services/card.service';
 })
 export class BoardComponent implements OnInit {
   board: Board | null = null;
+  inputCard = new FormControl<string>('', {
+    nonNullable: true,
+    validators: [Validators.required],
+  });
 
   constructor(
     private dialog: Dialog,
@@ -103,5 +109,44 @@ export class BoardComponent implements OnInit {
     this.cardsService
       .update(card.id, { position, listId })
       .subscribe((cardUpdated) => {});
+  }
+
+  openFormCard(list: List) {
+    if (this.board?.lists) {
+      this.board.lists = this.board.lists.map((iteratorList) => {
+        if (iteratorList.id === list.id) {
+          return {
+            ...iteratorList,
+            showCardForm: true,
+          };
+        }
+        return {
+          ...iteratorList,
+          showCardForm: false,
+        };
+      });
+    }
+  }
+
+  createCard(list: List) {
+    const title = this.inputCard.value;
+    if (this.board) {
+      this.cardsService
+        .create({
+          title,
+          listId: list.id,
+          boardId: this.board.id,
+          position: this.boardsService.getPositionNewCard(list.cards),
+        })
+        .subscribe((card) => {
+          list.cards.push(card);
+          this.inputCard.setValue('');
+          list.showCardForm = false;
+        });
+    }
+  }
+
+  closeCardForm(list: List) {
+    list.showCardForm = false;
   }
 }
